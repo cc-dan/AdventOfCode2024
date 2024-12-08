@@ -6,7 +6,7 @@
 
 struct token
 {
-	enum types { instruction, parameters, open_parameters, close_parameters, comma, number, eof };
+	enum types { instruction, parameters, eof };
 
 	types type;
 	std::string value;
@@ -115,16 +115,8 @@ token get_token(std::ifstream &s)
 		switch(c)
 		{
 		case '\n': continue;
-		case 'm': 
-			try
-			{
-				return get_instruction(s, c);
-			} catch(...) {}
-		case '(': 
-			try
-			{
-				return get_parameters(s, c);
-			} catch(...) {}
+		case 'm': return get_instruction(s, c);
+		case '(': return get_parameters(s, c);
 		default: throw std::runtime_error("unexpected");
 		}
 	}
@@ -155,7 +147,7 @@ int main(int argc, char *argv[])
 
 		states state;
 
-		state_machine(states s) : state(s) {}
+		state_machine(states s = states::init) : state(s) {}
 
 		states get_next_state(states s)
 		{
@@ -180,7 +172,7 @@ int main(int argc, char *argv[])
 
 	int total = 0;
 
-	state_machine state_machine(state_machine::states::init);
+	state_machine sm;
 
 	bool done = false;
 	while (!done)
@@ -191,10 +183,10 @@ int main(int argc, char *argv[])
 			switch(t.type)
 			{
 				case token::types::instruction: 
-					state_machine.state = state_machine::states::read_instruction;
+					sm.state = state_machine::states::read_instruction;
 					break;
 			case token::types::parameters:
-				if (state_machine.state == state_machine::states::read_instruction) 
+				if (sm.state == state_machine::states::read_instruction) 
 				{
 					std::istringstream s(t.value);
 					int result = 1;
@@ -202,13 +194,13 @@ int main(int argc, char *argv[])
 					while (std::getline(s, number, ','))
 						result *= std::stoi(number);
 					total += result;
-					state_machine.advance();
+					sm.advance();
 				}
 				break;
 			case token::types::eof: done = true; break;
-			default: state_machine.reset(); break;
+			default: sm.reset(); break;
 			}
-		} catch(...) { state_machine.reset(); }
+		} catch(...) { sm.reset(); }
 	}
 
 	std::cout << "result: " << total << std::endl;
